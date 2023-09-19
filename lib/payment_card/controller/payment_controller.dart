@@ -14,7 +14,7 @@ class PaymentController extends GetxController {
   RxString cardNumber = ''.obs;
   RxString cardHolderName = ''.obs;
   RxString expiryDate = ''.obs;
-  RxString cvv = ''.obs;
+  RxString cvc = ''.obs;
   TextEditingController cardNumberCtrl = TextEditingController();
   TextEditingController expiryFieldCtrl = TextEditingController();
   TextEditingController holderNameCtrl = TextEditingController();
@@ -79,9 +79,9 @@ class PaymentController extends GetxController {
 
   void onChangeCardCVV(String? value) {
     if (!value.isNull) {
-      cvv.value = value ?? '';
+      cvc.value = value ?? '';
     } else {
-      cvv.value = '';
+      cvc.value = '';
     }
   }
 }

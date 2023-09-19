@@ -31,12 +31,13 @@ class CardPaymentWidget extends GetView<PaymentController> {
           cardNumber: controller.cardNumber.value,
           cardExpiry: controller.expiryDate.value,
           cardHolderName: controller.cardHolderName.value,
-          cvv: controller.cvv.value,
+          cvv: controller.cvc.value,
           bankName: '',
           showBackSide: controller.showBack.value,
           frontBackground: CardBackgrounds.black,
           backBackground: CardBackgrounds.white,
           showShadow: false,
+
         ),
       );
     });

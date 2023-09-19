@@ -10,6 +10,7 @@ class OnlineBodyPayment extends GetView<PaymentController> {
   @override
   Widget build(BuildContext context) {
     return ListView(
+      shrinkWrap: true,
       clipBehavior: Clip.antiAliasWithSaveLayer,
       children: const [
         CardPaymentWidget(),

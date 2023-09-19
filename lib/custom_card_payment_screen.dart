@@ -1,19 +1,26 @@
 import 'dart:convert';
+import 'dart:developer';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
+import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
+import 'package:untitled1/payment_card/controller/payment_controller.dart';
 import 'package:untitled1/payment_card/ui/widgets/card_payment_widget.dart';
 
+import 'payment_card/ui/widgets/online_body_payment.dart';
+import 'stripe_payment/stripe_keys.dart';
+
 class CustomCardPaymentScreen extends StatefulWidget {
+  const CustomCardPaymentScreen({super.key});
+
   @override
-  _CustomCardPaymentScreenState createState() =>
-      _CustomCardPaymentScreenState();
+  CustomCardPaymentScreenState createState() => CustomCardPaymentScreenState();
 }
 
-class _CustomCardPaymentScreenState extends State<CustomCardPaymentScreen> {
+class CustomCardPaymentScreenState extends State<CustomCardPaymentScreen> {
   CardDetails _card = CardDetails();
-  bool? _saveCard = false;
 
   @override
   Widget build(BuildContext context) {
@@ -23,21 +30,8 @@ class _CustomCardPaymentScreenState extends State<CustomCardPaymentScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            CardPaymentWidget(),
+            OnlineBodyPayment(),
             SizedBox(height: 20),
-            Container(
-                margin: EdgeInsets.all(16),
-                padding: EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey[200],
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                    'If you don\'t want to or can\'t rely on the CardField you'
-                    ' can use the dangerouslyUpdateCardDetails in combination with '
-                    'your own card field implementation. \n\n'
-                    'Please beware that this will potentially break PCI compliance: '
-                    'https://stripe.com/docs/security/guide#validating-pci-compliance')),
             Padding(
               padding: EdgeInsets.all(16),
               child: Row(
@@ -98,15 +92,6 @@ class _CustomCardPaymentScreenState extends State<CustomCardPaymentScreen> {
                 ],
               ),
             ),
-            CheckboxListTile(
-              value: _saveCard,
-              onChanged: (value) {
-                setState(() {
-                  _saveCard = value;
-                });
-              },
-              title: Text('Save card during payment'),
-            ),
             Padding(
               padding: EdgeInsets.all(16),
               child: MaterialButton(
@@ -120,7 +105,39 @@ class _CustomCardPaymentScreenState extends State<CustomCardPaymentScreen> {
     );
   }
 
+  _initCardData() async {
+    PaymentController paymentController = Get.find<PaymentController>();
+
+    List<String> expiredData =
+        paymentController.expiryDate.value.toString().split('/');
+
+    _card = _card.copyWith(
+      cvc: paymentController.cvc.value,
+      expirationMonth: int.tryParse(expiredData.firstOrNull ?? ''),
+      expirationYear: int.tryParse(expiredData[1] ?? ''),
+      number: paymentController.cardNumber.value,
+    );
+  }
+  static Future<String> _getClientSecret(String amount, String currency) async {
+    Dio dio = Dio();
+    var response = await dio.post(
+      'https://api.stripe.com/v1/payment_intents',
+      options: Options(
+        headers: {
+          'Authorization': 'Bearer ${ApiKeys.secretKey}',
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+      ),
+      data: {
+        'amount': amount,
+        'currency': currency,
+      },
+    );
+    return response.data["client_secret"];
+  }
+
   Future<void> _handlePayPress() async {
+    await _initCardData();
     await Stripe.instance.dangerouslyUpdateCardDetails(_card);
 
     try {
@@ -159,6 +176,7 @@ class _CustomCardPaymentScreenState extends State<CustomCardPaymentScreen> {
 
       if (paymentIntentResult['error'] != null) {
         // Error during creating or confirming Intent
+        log(paymentIntentResult.toString());
         ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Error: ${paymentIntentResult['error']}')));
         return;
@@ -190,6 +208,7 @@ class _CustomCardPaymentScreenState extends State<CustomCardPaymentScreen> {
         }
       }
     } catch (e) {
+      log('Error: $e');
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text('Error: $e')));
       rethrow;
@@ -211,7 +230,7 @@ class _CustomCardPaymentScreenState extends State<CustomCardPaymentScreen> {
   Future<Map<String, dynamic>> callNoWebhookPayEndpointIntentId({
     required String paymentIntentId,
   }) async {
-    final url = Uri.parse('https://api.stripe.com/v1/charge-card-off-session');
+    final url = Uri.parse('http://10.0.2.2:424/charge-card-off-session');
     final response = await http.post(
       url,
       headers: {
@@ -228,7 +247,7 @@ class _CustomCardPaymentScreenState extends State<CustomCardPaymentScreen> {
     required String currency,
     List<String>? items,
   }) async {
-    final url = Uri.parse('https://api.stripe.com/v1/pay-without-webhooks');
+    final url = Uri.parse('http://localhost:4242/webhook.php');
     final response = await http.post(
       url,
       headers: {
