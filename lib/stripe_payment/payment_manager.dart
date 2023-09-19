@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:untitled1/stripe_payment/stripe_keys.dart';
 
@@ -16,7 +17,7 @@ abstract class PaymentManager {
 
   static Future<void> _initializePaymentSheet(String clientSecret) async {
     await Stripe.instance.initPaymentSheet(
-      paymentSheetParameters: SetupPaymentSheetParameters(
+      paymentSheetParameters: SetupPaymentSheetParameters(style: ThemeMode.light,
         paymentIntentClientSecret: clientSecret,
         merchantDisplayName: "Basel",
       ),
